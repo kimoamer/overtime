@@ -23,7 +23,7 @@ def get_custom_fields():
 			},
 			{
 				"fieldname": "overtime",
-				"fieldtype": "float",
+				"fieldtype": "Float",
 				"label": "Overtime",
 				"options": 2,
 				"insert_after": "time_section_break",
