@@ -83,12 +83,12 @@ app_license = "mit"
 # ------------
 
 # before_install = "overtime.install.before_install"
-# after_install = "overtime.install.after_install"
+after_install = "overtime.install.after_install"
 
 # Uninstallation
 # ------------
 
-# before_uninstall = "overtime.uninstall.before_uninstall"
+before_uninstall = "overtime.uninstall.before_uninstall"
 # after_uninstall = "overtime.uninstall.after_uninstall"
 
 # Integration Setup
