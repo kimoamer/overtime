@@ -2,18 +2,14 @@
 
 from itertools import groupby
 from hrms.hr.doctype.shift_type.shift_type import ShiftType
-from frappe.utils import cint, create_batch, get_datetime, get_time, getdate, get_weekday
+from frappe.utils import cint, create_batch
 from hrms.hr.doctype.employee_checkin.employee_checkin import (
     calculate_working_hours,
     skip_attendance_in_checkins,
     update_attendance_in_checkins,
     handle_attendance_exception
 )
-from erpnext.setup.doctype.holiday_list.holiday_list import is_holiday
-from hris.overrides.shift_assignment import get_employee_shift
-from hris.ihr.doctype.auto_attendance.auto_attendance import get_employee_auto_day
-import itertools
-from datetime import datetime, timedelta
+from datetime import timedelta
 import frappe
 from frappe import _
 

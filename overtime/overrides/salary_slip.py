@@ -1,24 +1,15 @@
+# Copyright (c) 2025, Innomate LLC. Ltd. and Contributors
+
 import frappe
 from hrms.payroll.doctype.salary_slip.salary_slip import SalarySlip
 from frappe.utils import (
 	add_days,
-	ceil,
 	cint,
-	cstr,
 	date_diff,
-	floor,
 	flt,
-	formatdate,
-	get_first_day,
-	get_link_to_form,
 	getdate,
-	money_in_words,
-	rounded,
 )
-from frappe.query_builder.functions import Coalesce, Count, Round, Sum
-from frappe.query_builder import Case, Order
-from hris.utils.payroll_actions import get_start_end_dates
-import datetime
+from frappe.query_builder.functions import  Sum
 from frappe import _
 
 class SalarySlipNew(SalarySlip):
@@ -63,10 +54,11 @@ class SalarySlipNew(SalarySlip):
             frappe.throw(_("Please set Payroll based on in Payroll settings"))
 
         if payroll_settings.payroll_based_on == "Attendance":
-            actual_lwp, absent = self.calculate_lwp_ppl_and_absent_days_based_on_attendance(
+            actual_lwp, absent, overtime = self.calculate_lwp_ppl_and_absent_days_based_on_attendance(
                 holidays, daily_wages_fraction_for_half_day, consider_marked_attendance_on_holidays
             )
             self.absent_days = absent
+            self.overtime = overtime
         else:
             actual_lwp = self.calculate_lwp_or_ppl_based_on_leave_application(
                 holidays, working_days_list, daily_wages_fraction_for_half_day
@@ -106,6 +98,22 @@ class SalarySlipNew(SalarySlip):
         else:
             self.payment_days = 0
 
+    def get_employee_attendance_overtime(self, start_date, end_date):
+        attendance = frappe.qb.DocType("Attendance")
+
+        attendance_details = (
+            frappe.qb.from_(attendance)
+            .select(Sum(attendance.overtime).as_("overtime"))
+            .where(
+                (attendance.status.isin(["Present"]))
+                & (attendance.employee == self.employee)
+                & (attendance.docstatus == 1)
+                & (attendance.attendance_date.between(start_date, end_date))
+            )
+        ).run(as_dict=1)
+
+        return attendance_details
+
     def calculate_lwp_ppl_and_absent_days_based_on_attendance(
         self, holidays, daily_wages_fraction_for_half_day, consider_marked_attendance_on_holidays
     ):
@@ -116,7 +124,7 @@ class SalarySlipNew(SalarySlip):
         attendance_details = self.get_employee_attendance(
             start_date=self.start_date, end_date=self.actual_end_date
         )
-
+        overtime = self.get_employee_attendance_overtime(start_date=self.start_date, end_date=self.actual_end_date)
         for d in attendance_details:
             if (
                 d.status in ("Half Day", "On Leave")
@@ -159,4 +167,4 @@ class SalarySlipNew(SalarySlip):
             elif d.status == "Absent":
                 absent += 1
 
-        return lwp, absent
+        return lwp, absent, overtime
