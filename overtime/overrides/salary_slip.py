@@ -13,6 +13,17 @@ from frappe.query_builder.functions import  Sum
 from frappe import _
 
 class SalarySlipNew(SalarySlip):
+    def before_save(self):
+        self.clac_month_days()
+
+    def clac_month_days(self):
+        first_day_of_month = frappe.utils.get_first_day(self.end_date)
+        last_day_of_month = frappe.utils.get_last_day(self.end_date)
+        diff_days = frappe.utils.date_diff(last_day_of_month,first_day_of_month)
+        diff_days += 1
+        self.month_days = diff_days
+    
+
     def get_working_days_details(self, lwp=None, for_preview=0):
         payroll_settings = frappe.get_cached_value(
             "Payroll Settings",
@@ -54,11 +65,12 @@ class SalarySlipNew(SalarySlip):
             frappe.throw(_("Please set Payroll based on in Payroll settings"))
 
         if payroll_settings.payroll_based_on == "Attendance":
-            actual_lwp, absent, overtime = self.calculate_lwp_ppl_and_absent_days_based_on_attendance(
+            actual_lwp, absent, overtime, overtime_days = self.calculate_lwp_ppl_and_absent_days_based_on_attendance(
                 holidays, daily_wages_fraction_for_half_day, consider_marked_attendance_on_holidays
             )
             self.absent_days = absent
             self.overtime = overtime
+            self.overtime_days = overtime_days
         else:
             actual_lwp = self.calculate_lwp_or_ppl_based_on_leave_application(
                 holidays, working_days_list, daily_wages_fraction_for_half_day
@@ -119,13 +131,15 @@ class SalarySlipNew(SalarySlip):
     ):
         lwp = 0
         absent = 0
-
+        overtime_days = 0
         leave_type_map = self.get_leave_type_map()
         attendance_details = self.get_employee_attendance(
             start_date=self.start_date, end_date=self.actual_end_date
         )
         overtime = self.get_employee_attendance_overtime(start_date=self.start_date, end_date=self.actual_end_date)
         for d in attendance_details:
+            if d.attendance_date in holidays:
+                overtime_days += 1
             if (
                 d.status in ("Half Day", "On Leave")
                 and d.leave_type
@@ -167,4 +181,4 @@ class SalarySlipNew(SalarySlip):
             elif d.status == "Absent":
                 absent += 1
 
-        return lwp, absent, overtime
+        return lwp, absent, overtime, overtime_days

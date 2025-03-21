@@ -39,6 +39,22 @@ def get_custom_fields():
                 "no_copy": 1,
                 "read_only": 1
 			},
+			{
+				"fieldname": "month_days",
+                "fieldtype": "Int",
+                "label": "Month Days",
+                "insert_after": "leave_without_pay",
+                "no_copy": 1,
+                "read_only": 1
+			},
+			{
+				"fieldname": "overtime_days",
+                "fieldtype": "Float",
+                "label": "Overtime Days",
+                "insert_after": "overtime",
+                "no_copy": 1,
+                "read_only": 1
+			},
 		]
 	}
 
