@@ -105,7 +105,8 @@ class ShiftTypeNew(ShiftType):
         ):
             early_exit = True
         overtime = 0
-        if (
+        if ( 
+            out_time and
             out_time > logs[0].shift_end
         ):
             diff_min = round(float((out_time - logs[0].shift_end).total_seconds()) / 60, 2)

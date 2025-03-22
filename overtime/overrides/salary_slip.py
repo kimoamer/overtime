@@ -9,7 +9,7 @@ from frappe.utils import (
 	flt,
 	getdate,
 )
-from frappe.query_builder.functions import  Sum
+from frappe.query_builder.functions import Count, Sum
 from frappe import _
 
 class SalarySlipNew(SalarySlip):
@@ -63,7 +63,6 @@ class SalarySlipNew(SalarySlip):
 
         if not payroll_settings.payroll_based_on:
             frappe.throw(_("Please set Payroll based on in Payroll settings"))
-
         if payroll_settings.payroll_based_on == "Attendance":
             actual_lwp, absent, overtime, overtime_days = self.calculate_lwp_ppl_and_absent_days_based_on_attendance(
                 holidays, daily_wages_fraction_for_half_day, consider_marked_attendance_on_holidays
@@ -126,20 +125,41 @@ class SalarySlipNew(SalarySlip):
 
         return attendance_details
 
+    def _get_marked_attendance_days_holidays(self, holidays: list | None = None) -> float:
+        Attendance = frappe.qb.DocType("Attendance")
+        query = (
+            frappe.qb.from_(Attendance)
+            .select(Count("*"))
+            .where(
+                (Attendance.attendance_date.between(self.actual_start_date, self.actual_end_date))
+                & (Attendance.employee == self.employee)
+                & (Attendance.docstatus == 1)
+            )
+        )
+        if holidays:
+            query = query.where(Attendance.attendance_date.isin(holidays))
+        result = query.run()
+        if len(result) > 0 :
+            return result[0][0]
+        else:
+            return 0
+
     def calculate_lwp_ppl_and_absent_days_based_on_attendance(
         self, holidays, daily_wages_fraction_for_half_day, consider_marked_attendance_on_holidays
     ):
         lwp = 0
         absent = 0
+        overtime = 0
         overtime_days = 0
         leave_type_map = self.get_leave_type_map()
         attendance_details = self.get_employee_attendance(
             start_date=self.start_date, end_date=self.actual_end_date
         )
-        overtime = self.get_employee_attendance_overtime(start_date=self.start_date, end_date=self.actual_end_date)
+        overtime_ = self.get_employee_attendance_overtime(start_date=self.start_date, end_date=self.actual_end_date)
+        if len(overtime_) > 0 :
+            overtime = overtime_[0].overtime
+        overtime_days = self._get_marked_attendance_days_holidays(holidays)
         for d in attendance_details:
-            if d.attendance_date in holidays:
-                overtime_days += 1
             if (
                 d.status in ("Half Day", "On Leave")
                 and d.leave_type
