@@ -9,12 +9,14 @@ from frappe.utils import (
 	flt,
 	getdate,
 )
-from frappe.query_builder.functions import Count, Sum
+from frappe.query_builder.functions import Count, Sum, Case
 from frappe import _
+from frappe.query_builder import DocType
 
 class SalarySlipNew(SalarySlip):
     def before_save(self):
         self.clac_month_days()
+        self.leaves_count = self.get_leaves_count()
 
     def clac_month_days(self):
         first_day_of_month = frappe.utils.get_first_day(self.end_date)
@@ -64,12 +66,13 @@ class SalarySlipNew(SalarySlip):
         if not payroll_settings.payroll_based_on:
             frappe.throw(_("Please set Payroll based on in Payroll settings"))
         if payroll_settings.payroll_based_on == "Attendance":
-            actual_lwp, absent, overtime, overtime_days = self.calculate_lwp_ppl_and_absent_days_based_on_attendance(
+            actual_lwp, absent, overtime, overtime_days, days_of_overtime = self.calculate_lwp_ppl_and_absent_days_based_on_attendance(
                 holidays, daily_wages_fraction_for_half_day, consider_marked_attendance_on_holidays
             )
             self.absent_days = absent
             self.overtime = overtime
             self.overtime_days = overtime_days
+            self.days_of_overtime = days_of_overtime
         else:
             actual_lwp = self.calculate_lwp_or_ppl_based_on_leave_application(
                 holidays, working_days_list, daily_wages_fraction_for_half_day
@@ -114,7 +117,9 @@ class SalarySlipNew(SalarySlip):
 
         attendance_details = (
             frappe.qb.from_(attendance)
-            .select(Sum(attendance.overtime).as_("overtime"))
+            .select(Sum(attendance.overtime).as_("overtime"), Sum(Case()
+            .when(attendance.overtime >= 1, 1)
+            .else_(0)).as_("days_of_overtime"))
             .where(
                 (attendance.status.isin(["Present"]))
                 & (attendance.employee == self.employee)
@@ -151,6 +156,7 @@ class SalarySlipNew(SalarySlip):
         absent = 0
         overtime = 0
         overtime_days = 0
+        days_of_overtime = 0
         leave_type_map = self.get_leave_type_map()
         attendance_details = self.get_employee_attendance(
             start_date=self.start_date, end_date=self.actual_end_date
@@ -158,6 +164,7 @@ class SalarySlipNew(SalarySlip):
         overtime_ = self.get_employee_attendance_overtime(start_date=self.start_date, end_date=self.actual_end_date)
         if len(overtime_) > 0 :
             overtime = overtime_[0].overtime
+            days_of_overtime = overtime_[0].days_of_overtime
         overtime_days = self._get_marked_attendance_days_holidays(holidays)
         for d in attendance_details:
             if (
@@ -201,4 +208,18 @@ class SalarySlipNew(SalarySlip):
             elif d.status == "Absent":
                 absent += 1
 
-        return lwp, absent, overtime, overtime_days
+        return lwp, absent, overtime, overtime_days, days_of_overtime
+
+    def get_leaves_count(self):
+        Attendance = DocType("Attendance")
+        LeaveType = DocType("Leave Type")
+        query = (
+            frappe.qb.from_(Attendance)
+            .join(LeaveType)
+            .on(Attendance.leave_type == LeaveType.name)
+            .select(Count(Attendance.name))
+            .where((LeaveType.is_lwp == 0) & (Attendance.employee == self.employee))
+            .where((Attendance.attendance_date >= self.start_date) & (Attendance.attendance_date <= self.end_date))
+        )
+        total_leaves = query.run()[0][0] if len(query.run()) > 0 else 0
+        return total_leaves

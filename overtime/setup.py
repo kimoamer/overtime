@@ -47,10 +47,26 @@ def get_custom_fields():
                 "read_only": 1
 			},
 			{
+				"fieldname": "days_of_overtime",
+                "fieldtype": "Int",
+                "label": "Days of Overtime",
+                "insert_after": "overtime_days",
+                "no_copy": 1,
+                "read_only": 1
+			},
+			{
 				"fieldname": "overtime_days",
                 "fieldtype": "Float",
                 "label": "Overtime Days",
                 "insert_after": "overtime",
+                "no_copy": 1,
+                "read_only": 1
+			},
+			{
+				"fieldname": "leaves_count",
+                "fieldtype": "Int",
+                "label": "Leaves Count",
+                "insert_after": "month_days",
                 "no_copy": 1,
                 "read_only": 1
 			},
