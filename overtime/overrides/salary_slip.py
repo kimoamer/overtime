@@ -9,7 +9,8 @@ from frappe.utils import (
 	flt,
 	getdate,
 )
-from frappe.query_builder.functions import Count, Sum, Case
+from frappe.query_builder.functions import Count, Sum
+from frappe.query_builder import Case
 from frappe import _
 from frappe.query_builder import DocType
 
