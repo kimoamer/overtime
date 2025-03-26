@@ -105,7 +105,7 @@ class ShiftTypeNew(ShiftType):
         ):
             early_exit = True
         overtime = 0
-        shift_diff = time_diff_in_hours(logs[0].shift_end, logs[0].shift_start)
+        shift_diff = time_diff_in_hours(logs[0].shift_end, logs[0].shift_start + timedelta(minutes=cint(self.late_entry_grace_period)))
         if ( 
             out_time and
             out_time > logs[0].shift_end and
