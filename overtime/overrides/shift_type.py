@@ -2,7 +2,7 @@
 
 from itertools import groupby
 from hrms.hr.doctype.shift_type.shift_type import ShiftType
-from frappe.utils import cint, create_batch
+from frappe.utils import cint, create_batch, time_diff_in_hours
 from hrms.hr.doctype.employee_checkin.employee_checkin import (
     calculate_working_hours,
     skip_attendance_in_checkins,
@@ -105,9 +105,11 @@ class ShiftTypeNew(ShiftType):
         ):
             early_exit = True
         overtime = 0
+        shift_diff = time_diff_in_hours(logs[0].shift_end, logs[0].shift_start)
         if ( 
             out_time and
-            out_time > logs[0].shift_end
+            out_time > logs[0].shift_end and
+            total_working_hours > shift_diff
         ):
             diff_min = round(float((out_time - logs[0].shift_end).total_seconds()) / 60, 2)
             overtime = round(diff_min / 60, 2)
