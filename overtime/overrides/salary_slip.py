@@ -14,8 +14,12 @@ from frappe.query_builder import Case
 from frappe import _
 from frappe.query_builder import DocType
 
+from hrms.payroll.doctype.salary_slip.salary_slip_loan_utils import (
+	process_loan_interest_accruals,
+)
+
 class SalarySlipNew(SalarySlip):
-    def validate(self):
+    def before_save(self):
         self.clac_month_days()
         self.leaves_count = self.get_leaves_count()
 
@@ -26,7 +30,36 @@ class SalarySlipNew(SalarySlip):
         diff_days += 1
         self.month_days = diff_days
     
+    @frappe.whitelist()
+    def get_emp_and_working_day_details(self):
+        """First time, load all the components from salary structure"""
+        if self.employee:
+            self.clac_month_days()
+            self.leaves_count = self.get_leaves_count()
+            self.set("earnings", [])
+            self.set("deductions", [])
+            if hasattr(self, "loans"):
+                self.set("loans", [])
 
+            if self.payroll_frequency:
+                self.get_date_details()
+
+            self.validate_dates()
+
+            # getin leave details
+            self.get_working_days_details()
+            struct = self.check_sal_struct()
+
+            if struct:
+                self.set_salary_structure_doc()
+                self.salary_slip_based_on_timesheet = (
+                    self._salary_structure_doc.salary_slip_based_on_timesheet or 0
+                )
+                self.set_time_sheet()
+                self.pull_sal_struct()
+
+            process_loan_interest_accruals(self)
+               
     def get_working_days_details(self, lwp=None, for_preview=0):
         payroll_settings = frappe.get_cached_value(
             "Payroll Settings",
