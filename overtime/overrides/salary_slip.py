@@ -21,7 +21,7 @@ from hrms.payroll.doctype.salary_slip.salary_slip_loan_utils import (
 class SalarySlipNew(SalarySlip):
     def before_save(self):
         self.clac_month_days()
-        self.leaves_count = self.get_leaves_count()
+        self.get_leaves_count()
 
     def clac_month_days(self):
         first_day_of_month = frappe.utils.get_first_day(self.end_date)
@@ -35,7 +35,7 @@ class SalarySlipNew(SalarySlip):
         """First time, load all the components from salary structure"""
         if self.employee:
             self.clac_month_days()
-            self.leaves_count = self.get_leaves_count()
+            self.get_leaves_count()
             self.set("earnings", [])
             self.set("deductions", [])
             if hasattr(self, "loans"):
@@ -255,4 +255,4 @@ class SalarySlipNew(SalarySlip):
             .where((Attendance.attendance_date >= self.start_date) & (Attendance.attendance_date <= self.end_date))
         )
         total_leaves = query.run()[0][0] if len(query.run()) > 0 else 0
-        return total_leaves
+        self.leaves_count = total_leaves
