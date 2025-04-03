@@ -57,7 +57,6 @@ class SalarySlipNew(SalarySlip):
                 )
                 self.set_time_sheet()
                 self.pull_sal_struct()
-            frappe.msgprint(f"{self.posting_date}")
             process_loan_interest_accruals(self)
                
     def get_working_days_details(self, lwp=None, for_preview=0):
