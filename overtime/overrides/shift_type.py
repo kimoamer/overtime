@@ -111,8 +111,9 @@ class ShiftTypeNew(ShiftType):
             out_time > logs[0].shift_end and
             total_working_hours > shift_diff
         ):
-            diff_min = round(float((out_time - logs[0].shift_end).total_seconds()) / 60, 2)
-            overtime = round(diff_min / 60, 2)
+            # diff_min = round(float((out_time - logs[0].shift_end).total_seconds()) / 60, 2)
+            # overtime = round(diff_min / 60, 2)
+            overtime = total_working_hours - shift_diff
         if (
             self.working_hours_threshold_for_absent
             and total_working_hours < self.working_hours_threshold_for_absent
