@@ -15,7 +15,7 @@ from frappe import _
 from frappe.query_builder import DocType
 
 from hrms.payroll.doctype.salary_slip.salary_slip_loan_utils import (
-	process_loan_interest_accruals,
+	process_loan_interest_accruals
 )
 
 class SalarySlipNew(SalarySlip):
@@ -57,7 +57,7 @@ class SalarySlipNew(SalarySlip):
                 )
                 self.set_time_sheet()
                 self.pull_sal_struct()
-
+            frappe.msgprint(f"{self}")
             process_loan_interest_accruals(self)
                
     def get_working_days_details(self, lwp=None, for_preview=0):
