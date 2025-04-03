@@ -15,7 +15,7 @@ from frappe import _
 from frappe.query_builder import DocType
 
 class SalarySlipNew(SalarySlip):
-    def before_save(self):
+    def validate(self):
         self.clac_month_days()
         self.leaves_count = self.get_leaves_count()
 
