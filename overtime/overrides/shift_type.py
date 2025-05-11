@@ -104,16 +104,22 @@ class ShiftTypeNew(ShiftType):
             and out_time < logs[0].shift_end - timedelta(minutes=cint(self.early_exit_grace_period))
         ):
             early_exit = True
+
+        # Calculate overtime
         overtime = 0
-        shift_diff = time_diff_in_hours(logs[0].shift_end, logs[0].shift_start + timedelta(minutes=cint(self.late_entry_grace_period)))
-        if ( 
-            out_time and
-            out_time > logs[0].shift_end and
-            total_working_hours > shift_diff
-        ):
-            # diff_min = round(float((out_time - logs[0].shift_end).total_seconds()) / 60, 2)
-            # overtime = round(diff_min / 60, 2)
-            overtime = total_working_hours - shift_diff
+        if out_time:
+            # Calculate the standard shift duration (required working hours)
+            standard_shift_hours = time_diff_in_hours(logs[0].shift_end, logs[0].shift_start)
+            
+            # Only count overtime if employee has completed their required shift hours
+            if total_working_hours > standard_shift_hours:
+                overtime = total_working_hours - standard_shift_hours
+
+                # If employee started before shift_start, deduct that early time from overtime
+                if in_time < logs[0].shift_start:
+                    early_start_hours = time_diff_in_hours(logs[0].shift_start, in_time)
+                    overtime = max(0, overtime - early_start_hours)  # Ensure overtime doesn't go negative
+        overtime = round(overtime, 2)
         if (
             self.working_hours_threshold_for_absent
             and total_working_hours < self.working_hours_threshold_for_absent
