@@ -172,6 +172,7 @@ class SalarySlipNew(SalarySlip):
                 (Attendance.attendance_date.between(self.actual_start_date, self.actual_end_date))
                 & (Attendance.employee == self.employee)
                 & (Attendance.docstatus == 1)
+                & (Attendance.status == "Present")
             )
         )
         if holidays:
